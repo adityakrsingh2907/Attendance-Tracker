@@ -1,0 +1,1006 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>BluParrot Attendance</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif);background:transparent;color:var(--color-text-primary);font-size:14px}
+h2.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+.shell{display:flex;height:100vh;min-height:600px;overflow:hidden}
+.sidebar{width:196px;flex-shrink:0;border-right:0.5px solid var(--color-border-tertiary);display:flex;flex-direction:column;padding:16px 0}
+.main{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-width:0}
+.brand{padding:0 16px 14px;border-bottom:0.5px solid var(--color-border-tertiary);margin-bottom:10px}
+.brand-name{font-size:13px;font-weight:500}
+.brand-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#1D9E75;margin-right:6px}
+.brand-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:7px 16px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);transition:background .15s}
+.nav-item:hover,.nav-item.active{background:var(--color-background-secondary);color:var(--color-text-primary)}
+.nav-item.active{font-weight:500}
+.nav-item i{font-size:16px;width:18px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;border-bottom:0.5px solid var(--color-border-tertiary);flex-shrink:0;gap:8px}
+.topbar-title{font-size:15px;font-weight:500;white-space:nowrap}
+.topbar-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.month-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);padding:4px 10px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-tertiary)}
+.month-chip select{background:transparent;border:none;font-size:12px;color:var(--color-text-secondary);cursor:pointer;outline:none;padding:0;font-family:inherit;max-width:120px}
+.btn{display:inline-flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;cursor:pointer;border-radius:var(--border-radius-md);font-family:inherit;transition:opacity .15s;white-space:nowrap;font-weight:500}
+.btn-primary{background:#1D9E75;color:#fff;border:none}.btn-primary:hover{opacity:.88}
+.btn-danger{background:#E24B4A;color:#fff;border:none}.btn-danger:hover{opacity:.88}
+.btn-info{background:#185FA5;color:#fff;border:none}.btn-info:hover{opacity:.88}
+.btn-neutral{background:var(--color-background-secondary);color:var(--color-text-primary);border:0.5px solid var(--color-border-secondary)}.btn-neutral:hover{background:var(--color-background-tertiary)}
+.btn-amber{background:#BA7517;color:#fff;border:none}.btn-amber:hover{opacity:.88}
+.btn-sm{font-size:11px;padding:3px 8px}
+.content{padding:14px 18px;flex:1}
+.stats-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.stat-card{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:11px 13px}
+.stat-label{font-size:11px;color:var(--color-text-secondary);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.stat-val{font-size:21px;font-weight:500}
+.stat-sub{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.c-green-val{color:#0F6E56}.c-red-val{color:#A32D2D}.c-amber-val{color:#854F0B}.c-blue-val{color:#185FA5}
+@media(prefers-color-scheme:dark){.c-green-val{color:#5DCAA5}.c-red-val{color:#F09595}.c-amber-val{color:#FAC775}.c-blue-val{color:#85B7EB}}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:20px;font-size:11px;font-weight:500}
+.badge-present{background:#E1F5EE;color:#085041}.badge-absent{background:#FCEBEB;color:#791F1F}.badge-wfh{background:#E6F1FB;color:#0C447C}.badge-leave{background:#FAEEDA;color:#633806}.badge-neutral{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+@media(prefers-color-scheme:dark){.badge-present{background:#085041;color:#9FE1CB}.badge-absent{background:#501313;color:#F7C1C1}.badge-wfh{background:#042C53;color:#B5D4F4}.badge-leave{background:#412402;color:#FAC775}}
+.table-wrap{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);overflow:hidden}
+table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:13px}
+thead th{background:var(--color-background-secondary);padding:7px 9px;text-align:left;font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
+tbody tr{border-bottom:0.5px solid var(--color-border-tertiary);transition:background .1s}
+tbody tr:last-child{border-bottom:none}
+tbody tr.clickable{cursor:pointer}
+tbody tr.clickable:hover{background:var(--color-background-secondary)}
+tbody td{padding:7px 9px;vertical-align:middle}
+tbody tr.row-absent{background:#FEF5F5}tbody tr.row-absent:hover{background:#FCEDED}
+tbody tr.row-leave{background:#FFFBF2}tbody tr.row-leave:hover{background:#FFF4E0}
+@media(prefers-color-scheme:dark){tbody tr.row-absent{background:rgba(162,45,45,.13)}tbody tr.row-absent:hover{background:rgba(162,45,45,.2)}tbody tr.row-leave{background:rgba(133,79,11,.12)}tbody tr.row-leave:hover{background:rgba(133,79,11,.2)}}
+.time-cell{font-variant-numeric:tabular-nums;color:var(--color-text-secondary)}
+.time-cell.late{color:#BA7517}
+.avatar{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:500;margin-right:6px;flex-shrink:0;vertical-align:middle}
+.emp-cell{display:flex;align-items:center}
+.emp-name{font-weight:500}
+.emp-role{font-size:11px;color:var(--color-text-secondary)}
+.hours-bar-wrap{display:flex;align-items:center;gap:5px}
+.hours-bar{height:4px;border-radius:2px;background:var(--color-border-tertiary);flex:1;overflow:hidden}
+.hours-bar-fill{height:100%;border-radius:2px;background:#1D9E75}
+.hours-val{font-size:11px;min-width:30px;text-align:right;color:var(--color-text-secondary)}
+.cout-btn{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:var(--border-radius-md);background:#E24B4A;color:#fff;border:none;cursor:pointer;font-family:inherit;font-weight:500;transition:opacity .15s}
+.cout-btn:hover{opacity:.85}
+.cout-done{font-size:11px;color:var(--color-text-secondary);font-variant-numeric:tabular-nums}
+.mark-sel{font-size:11px;height:26px;padding:0 4px;border-radius:var(--border-radius-md);background:var(--color-background-secondary);border:0.5px solid var(--color-border-secondary);color:var(--color-text-secondary);font-family:inherit;cursor:pointer}
+.search-wrap{position:relative;flex:1;min-width:140px;max-width:260px}
+.search-wrap i{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:14px;color:var(--color-text-secondary);pointer-events:none}
+.search-input{width:100%;height:30px;padding:0 8px 0 28px;font-size:12px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-primary);font-family:inherit;outline:none}
+.search-input:focus{border-color:var(--color-border-primary)}
+.search-input::placeholder{color:var(--color-text-tertiary)}
+.regex-err{font-size:11px;color:#A32D2D;margin-top:3px;display:none}
+.regex-err.show{display:block}
+.highlight{background:#FAEEDA;border-radius:2px;color:#633806}
+@media(prefers-color-scheme:dark){.highlight{background:#412402;color:#FAC775}}
+.edit-input{font-size:12px;height:26px;padding:0 6px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-primary);font-family:inherit;width:100%;outline:none}
+.edit-input:focus{border-color:#185FA5}
+.modal-backdrop{min-height:500px;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;padding:20px}
+.modal-box{background:var(--color-background-primary);border-radius:var(--border-radius-lg);border:0.5px solid var(--color-border-secondary);padding:24px;width:100%;max-width:380px}
+.modal-title{font-size:15px;font-weight:500;margin-bottom:6px}
+.modal-sub{font-size:13px;color:var(--color-text-secondary);line-height:1.6;margin-bottom:18px}
+.modal-preview{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:10px 13px;font-size:12px;color:var(--color-text-secondary);margin-bottom:18px;border:0.5px solid var(--color-border-tertiary)}
+.modal-preview strong{color:var(--color-text-primary);font-weight:500}
+.modal-options{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.modal-option{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;border-radius:var(--border-radius-md);border:0.5px solid var(--color-border-secondary);cursor:pointer;transition:border-color .15s,background .15s}
+.modal-option:hover{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
+.modal-option.selected{border:2px solid #185FA5;background:var(--color-background-info)}
+.modal-option i{font-size:18px;margin-top:1px;flex-shrink:0}
+.modal-option-title{font-size:13px;font-weight:500}
+.modal-option-desc{font-size:11px;color:var(--color-text-secondary);margin-top:2px}
+.modal-option.selected .modal-option-title{color:var(--color-text-info)}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end}
+.del-confirm{display:flex;align-items:center;gap:6px;background:#FCEBEB;border-radius:var(--border-radius-md);padding:4px 8px;border:0.5px solid #F7C1C1}
+.del-confirm span{font-size:11px;color:#791F1F}
+@media(prefers-color-scheme:dark){.del-confirm{background:rgba(162,45,45,.18);border-color:rgba(240,149,149,.3)}.del-confirm span{color:#F09595}}
+.setup{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px;text-align:center}
+.setup h3{font-size:16px;font-weight:500;margin-bottom:8px}
+.setup p{font-size:13px;color:var(--color-text-secondary);max-width:340px;line-height:1.6;margin-bottom:16px}
+.upload-area{border:1.5px dashed var(--color-border-secondary);border-radius:var(--border-radius-lg);padding:26px 40px;cursor:pointer;transition:border-color .2s,background .2s;width:100%;max-width:360px}
+.upload-area:hover{border-color:var(--color-border-primary);background:var(--color-background-secondary)}
+.setup-hint{font-size:12px;color:var(--color-text-secondary);background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-md);padding:10px 14px;max-width:360px;width:100%;text-align:left;margin-top:4px;line-height:1.8}
+.setup-hint code{font-family:var(--font-mono);font-size:11px;background:var(--color-background-primary);padding:1px 5px;border-radius:4px;border:0.5px solid var(--color-border-tertiary)}
+.detail-panel{display:none;width:252px;flex-shrink:0;border-left:0.5px solid var(--color-border-tertiary);padding:14px;overflow-y:auto}
+.detail-panel.open{display:block}
+.detail-close{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.detail-close button{background:transparent;border:none;cursor:pointer;color:var(--color-text-secondary);padding:4px;font-size:16px;line-height:1}
+.det-avatar{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:500;margin:0 auto 8px}
+.det-name{text-align:center;font-weight:500;font-size:14px}
+.det-role{text-align:center;font-size:12px;color:var(--color-text-secondary);margin-bottom:14px}
+.det-sec{margin-bottom:12px}
+.det-sec-title{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--color-text-secondary);margin-bottom:5px}
+.det-row{display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:0.5px solid var(--color-border-tertiary)}
+.det-row:last-child{border-bottom:none}
+.det-row .k{color:var(--color-text-secondary)}
+.mini-cal{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-top:5px}
+.mcd{aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:500}
+.mc-p{background:#E1F5EE;color:#085041}.mc-a{background:#FCEBEB;color:#791F1F}.mc-w{background:#E6F1FB;color:#0C447C}.mc-l{background:#FAEEDA;color:#633806}
+@media(prefers-color-scheme:dark){.mc-p{background:#085041;color:#9FE1CB}.mc-a{background:#501313;color:#F7C1C1}.mc-w{background:#042C53;color:#B5D4F4}.mc-l{background:#412402;color:#FAC775}}
+.monthly-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px}
+.emp-month-card{background:var(--color-background-primary);border:0.5px solid var(--color-border-tertiary);border-radius:var(--border-radius-lg);padding:13px;cursor:pointer;transition:border-color .15s}
+.emp-month-card:hover{border-color:var(--color-border-secondary)}
+.tab-bar{display:flex;border-bottom:0.5px solid var(--color-border-tertiary);padding:0 18px}
+.tab{padding:9px 13px;font-size:13px;cursor:pointer;color:var(--color-text-secondary);border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s}
+.tab.active{color:var(--color-text-primary);font-weight:500;border-bottom-color:var(--color-text-primary)}
+.tab:hover{color:var(--color-text-primary)}
+.sec-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px}
+.sec-hdr-left{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.sec-title{font-size:13px;font-weight:500}
+.no-results{text-align:center;padding:28px;color:var(--color-text-secondary);font-size:13px}
+.dl-wrap{position:relative;display:inline-block}
+.dl-menu{display:none;position:absolute;right:0;top:calc(100% + 4px);background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);min-width:220px;z-index:99}
+.dl-menu.open{display:block}
+.dl-item{display:flex;align-items:flex-start;gap:10px;padding:10px 13px;cursor:pointer;transition:background .1s;border-bottom:0.5px solid var(--color-border-tertiary)}
+.dl-item:last-child{border-bottom:none}
+.dl-item:hover{background:var(--color-background-secondary)}
+.dl-item i{font-size:15px;margin-top:1px;flex-shrink:0}
+.dl-item-t{font-size:13px;font-weight:500}
+.dl-item-s{font-size:11px;color:var(--color-text-secondary);margin-top:1px}
+
+/* ── Supabase-specific UI ── */
+.db-status{display:inline-flex;align-items:center;gap:5px;font-size:11px;padding:3px 9px;border-radius:20px;font-weight:500}
+.db-status.ok{background:#E1F5EE;color:#085041}
+.db-status.err{background:#FCEBEB;color:#791F1F}
+.db-status.loading{background:var(--color-background-secondary);color:var(--color-text-secondary)}
+@media(prefers-color-scheme:dark){.db-status.ok{background:#085041;color:#9FE1CB}.db-status.err{background:#501313;color:#F7C1C1}}
+.db-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.db-status.ok .db-dot{background:#1D9E75}
+.db-status.err .db-dot{background:#E24B4A}
+.db-status.loading .db-dot{background:var(--color-text-secondary);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+.config-banner{background:#FAEEDA;border:0.5px solid #F0C080;border-radius:var(--border-radius-md);padding:10px 14px;font-size:12px;color:#633806;margin:12px 18px 0;display:flex;align-items:flex-start;gap:8px;line-height:1.6}
+.config-banner a{color:#185FA5;text-decoration:underline}
+@media(prefers-color-scheme:dark){.config-banner{background:#412402;border-color:#7A4A10;color:#FAC775}}
+
+.saving-indicator{position:fixed;bottom:14px;right:18px;background:var(--color-background-primary);border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-md);padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:6px;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:opacity .3s}
+.saving-indicator.hidden{opacity:0;pointer-events:none}
+</style>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+<h2 class="sr-only">BluParrot Ventures attendance dashboard</h2>
+<div id="modal-root"></div>
+<div id="config-banner-root"></div>
+<div class="shell" id="app"></div>
+<div class="saving-indicator hidden" id="saving-indicator"><i class="ti ti-loader" style="animation:spin .7s linear infinite"></i><span id="saving-text">Saving…</span></div>
+
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<!-- External libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Supabase JS v2 -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<!-- Your credentials (edit config.js) -->
+<script src="config.js"></script>
+
+<script>
+// ============================================================
+// 1. SUPABASE CLIENT SETUP
+// ============================================================
+let supabase = null;
+let dbOk = false;
+
+function initSupabase() {
+  try {
+    if (
+      typeof SUPABASE_URL === 'undefined' ||
+      typeof SUPABASE_ANON_KEY === 'undefined' ||
+      SUPABASE_URL.includes('YOUR_PROJECT_ID') ||
+      SUPABASE_ANON_KEY.includes('YOUR_ANON')
+    ) {
+      console.warn('Supabase not configured — edit config.js');
+      return false;
+    }
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    return true;
+  } catch (e) {
+    console.error('Supabase init error:', e);
+    return false;
+  }
+}
+
+// ============================================================
+// 2. HELPERS / UTILS
+// ============================================================
+const AVC=[{bg:'#E1F5EE',color:'#085041'},{bg:'#E6F1FB',color:'#0C447C'},{bg:'#FBEAF0',color:'#72243E'},{bg:'#FAEEDA',color:'#633806'},{bg:'#EEEDFE',color:'#3C3489'},{bg:'#FCEBEB',color:'#791F1F'}];
+const ac = i => AVC[i % AVC.length];
+const ini = n => n.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+const todayStr = () => new Date().toISOString().slice(0,10);
+const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+const fmtMonth = (y,m) => new Date(y,m,1).toLocaleDateString('en-IN',{month:'long',year:'numeric'});
+const nowTime = () => { const n=new Date(); return `${String(n.getHours()).padStart(2,'0')}:${String(n.getMinutes()).padStart(2,'0')}`; };
+const escHtml = s => String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+// ============================================================
+// 3. STATE
+// ============================================================
+const now = new Date();
+let state = {
+  employees: [],
+  records: {},           // { empId: { 'YYYY-MM-DD': {status,clockIn,clockOut} } }
+  selectedDate: todayStr(),
+  selectedEmp: null,
+  view: 'daily',
+  page: 'attendance',
+  dlOpen: false,
+  viewYear: now.getFullYear(),
+  viewMonth: now.getMonth(),
+  searchQuery: '',
+  searchError: false,
+  editingEmpId: null,
+  confirmDeleteId: null,
+  uploadModal: null,
+  dbStatus: 'loading',   // 'loading' | 'ok' | 'err' | 'unconfigured'
+  isSaving: false,
+  saveQueue: [],
+};
+
+// ============================================================
+// 4. DATABASE LAYER
+//    All DB calls go through these functions.
+//    Falls back to localStorage when Supabase is not configured.
+// ============================================================
+
+/* ── Local fallback ── */
+function saveLS() {
+  try {
+    localStorage.setItem('bp_emp', JSON.stringify(state.employees));
+    localStorage.setItem('bp_rec', JSON.stringify(state.records));
+  } catch {}
+}
+function loadLS() {
+  try {
+    const e = localStorage.getItem('bp_emp');
+    const r = localStorage.getItem('bp_rec');
+    if (e) { state.employees = JSON.parse(e); state.records = JSON.parse(r || '{}'); }
+  } catch {}
+}
+
+/* ── Supabase: load all employees ── */
+async function dbLoadEmployees() {
+  const { data, error } = await supabase
+    .from('employees')
+    .select('*')
+    .order('created_at');
+  if (error) throw error;
+  return data.map(r => ({ id: r.id, name: r.name, role: r.role, dept: r.dept }));
+}
+
+/* ── Supabase: load attendance records for a month ── */
+async function dbLoadRecordsForMonth(year, month) {
+  const start = new Date(year, month, 1).toISOString().slice(0,10);
+  const end   = new Date(year, month+1, 0).toISOString().slice(0,10);
+  const { data, error } = await supabase
+    .from('attendance_records')
+    .select('*')
+    .gte('date', start)
+    .lte('date', end);
+  if (error) throw error;
+  // Merge into state.records
+  (data || []).forEach(row => {
+    if (!state.records[row.emp_id]) state.records[row.emp_id] = {};
+    state.records[row.emp_id][row.date] = {
+      status: row.status,
+      clockIn: row.clock_in,
+      clockOut: row.clock_out,
+    };
+  });
+}
+
+/* ── Supabase: upsert one attendance record ── */
+async function dbUpsertRecord(empId, date, data) {
+  const { error } = await supabase
+    .from('attendance_records')
+    .upsert({
+      emp_id: empId,
+      date: date,
+      status: data.status ?? null,
+      clock_in: data.clockIn ?? null,
+      clock_out: data.clockOut ?? null,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: 'emp_id,date' });
+  if (error) throw error;
+}
+
+/* ── Supabase: insert employee ── */
+async function dbInsertEmployee(emp) {
+  const { error } = await supabase
+    .from('employees')
+    .insert({ id: emp.id, name: emp.name, role: emp.role, dept: emp.dept });
+  if (error) throw error;
+}
+
+/* ── Supabase: update employee ── */
+async function dbUpdateEmployee(emp) {
+  const { error } = await supabase
+    .from('employees')
+    .update({ name: emp.name, role: emp.role, dept: emp.dept })
+    .eq('id', emp.id);
+  if (error) throw error;
+}
+
+/* ── Supabase: delete employee (cascade deletes records) ── */
+async function dbDeleteEmployee(id) {
+  const { error } = await supabase
+    .from('employees')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
+/* ── Supabase: bulk upsert employees from CSV ── */
+async function dbBulkUpsertEmployees(emps) {
+  const { error } = await supabase
+    .from('employees')
+    .upsert(emps.map(e => ({ id: e.id, name: e.name, role: e.role, dept: e.dept })));
+  if (error) throw error;
+}
+
+/* ── Supabase: delete all employees ── */
+async function dbDeleteAllEmployees() {
+  const { error } = await supabase
+    .from('employees')
+    .delete()
+    .neq('id', '');    // delete all rows
+  if (error) throw error;
+}
+
+// ============================================================
+// 5. INIT — load data on startup
+// ============================================================
+async function init() {
+  const configured = initSupabase();
+  if (!configured) {
+    state.dbStatus = 'unconfigured';
+    loadLS();
+    render();
+    return;
+  }
+
+  state.dbStatus = 'loading';
+  render();
+
+  try {
+    state.employees = await dbLoadEmployees();
+    await dbLoadRecordsForMonth(state.viewYear, state.viewMonth);
+    state.dbStatus = 'ok';
+    dbOk = true;
+  } catch(e) {
+    console.error('DB init error:', e);
+    state.dbStatus = 'err';
+    loadLS(); // fallback
+  }
+  render();
+}
+
+// ============================================================
+// 6. RECORD ACCESSORS (same API as before)
+// ============================================================
+function getR(id, date) {
+  return (state.records[id] || {})[date] || { status: null, clockIn: null, clockOut: null };
+}
+
+async function setR(id, date, data) {
+  if (!state.records[id]) state.records[id] = {};
+  state.records[id][date] = { ...getR(id, date), ...data };
+
+  // Always update local state immediately for snappy UI
+  render();
+
+  if (dbOk) {
+    showSaving('Saving…');
+    try {
+      await dbUpsertRecord(id, date, state.records[id][date]);
+      showSaving('Saved ✓', 1000);
+    } catch(e) {
+      console.error('setR error:', e);
+      showSaving('Save failed', 2000);
+      saveLS(); // fallback
+    }
+  } else {
+    saveLS();
+  }
+}
+
+// ============================================================
+// 7. SAVING INDICATOR
+// ============================================================
+let savingTimer = null;
+function showSaving(msg, autohideMs = 0) {
+  const el = document.getElementById('saving-indicator');
+  const txt = document.getElementById('saving-text');
+  if (!el) return;
+  el.classList.remove('hidden');
+  txt.textContent = msg;
+  if (savingTimer) clearTimeout(savingTimer);
+  if (autohideMs) savingTimer = setTimeout(() => el.classList.add('hidden'), autohideMs);
+}
+
+// ============================================================
+// 8. CALCULATIONS (unchanged from original)
+// ============================================================
+function dailyHrs(id, date) {
+  const r = getR(id, date);
+  if (!r.clockIn || !r.clockOut) return 0;
+  const [h1,m1] = r.clockIn.split(':').map(Number);
+  const [h2,m2] = r.clockOut.split(':').map(Number);
+  return Math.max(0, ((h2*60+m2) - (h1*60+m1)) / 60);
+}
+function monthlyHrs(id, y, m) {
+  const base = new Date(y,m,1); let t = 0;
+  for (let i = 0; i < 31; i++) {
+    const d = new Date(base); d.setDate(i+1);
+    if (d.getMonth() !== m) break;
+    t += dailyHrs(id, d.toISOString().slice(0,10));
+  }
+  return t;
+}
+function mCounts(id, y, m) {
+  const base = new Date(y,m,1); let p=0,a=0,w=0,l=0,days=0;
+  for (let i = 0; i < 31; i++) {
+    const d = new Date(base); d.setDate(i+1);
+    if (d.getMonth() !== m || d > new Date()) break;
+    if (d.getDay() === 0 || d.getDay() === 6) continue;
+    days++;
+    const s = getR(id, d.toISOString().slice(0,10)).status;
+    if (s==='present') p++; else if (s==='wfh') w++; else if (s==='leave') l++; else if (s==='absent') a++;
+  }
+  return { present:p, absent:a, wfh:w, leave:l, days };
+}
+
+function filteredEmployees() {
+  const q = state.searchQuery.trim();
+  if (!q) { state.searchError = false; return state.employees; }
+  try {
+    const rx = new RegExp(q, 'i'); state.searchError = false;
+    return state.employees.filter(e => rx.test(e.name) || rx.test(e.role) || rx.test(e.dept));
+  } catch { state.searchError = true; return state.employees; }
+}
+function highlightMatch(text) {
+  const q = state.searchQuery.trim();
+  if (!q || state.searchError) return escHtml(text);
+  try { const rx = new RegExp(`(${q})`, 'gi'); return escHtml(text).replace(rx,'<mark class="highlight">$1</mark>'); }
+  catch { return escHtml(text); }
+}
+
+// ============================================================
+// 9. RENDER HELPERS
+// ============================================================
+function statusBadge(s) {
+  if (!s) return `<span class="badge badge-neutral">—</span>`;
+  const m = { present:{cls:'badge-present',icon:'ti-check',label:'Present'}, absent:{cls:'badge-absent',icon:'ti-x',label:'Absent'}, wfh:{cls:'badge-wfh',icon:'ti-home',label:'WFH'}, leave:{cls:'badge-leave',icon:'ti-calendar-off',label:'Leave'} }[s];
+  return m ? `<span class="badge ${m.cls}"><i class="ti ${m.icon}"></i>${m.label}</span>` : `<span class="badge badge-neutral">—</span>`;
+}
+function hoursBar(h, max=9) {
+  const p = Math.min(100, Math.round(h/max*100));
+  return `<div class="hours-bar-wrap"><div class="hours-bar"><div class="hours-bar-fill" style="width:${p}%"></div></div><span class="hours-val">${h.toFixed(1)}h</span></div>`;
+}
+function rowClass(s) { if(s==='absent') return ' row-absent'; if(s==='leave') return ' row-leave'; return ''; }
+function monthOptions() {
+  const opts = []; const cur = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(cur.getFullYear(), cur.getMonth()-i, 1);
+    const y = d.getFullYear(), m = d.getMonth();
+    const sel = (y===state.viewYear && m===state.viewMonth) ? 'selected' : '';
+    opts.push(`<option value="${y}-${m}" ${sel}>${d.toLocaleDateString('en-IN',{month:'short',year:'numeric'})}</option>`);
+  }
+  return opts.join('');
+}
+function dbStatusBadge() {
+  const map = {
+    ok:           { cls:'ok',      dot:'', label:'Connected' },
+    err:          { cls:'err',     dot:'', label:'DB error' },
+    loading:      { cls:'loading', dot:'', label:'Connecting…' },
+    unconfigured: { cls:'err',     dot:'', label:'Not configured' },
+  };
+  const s = map[state.dbStatus] || map.loading;
+  return `<span class="db-status ${s.cls}"><span class="db-dot"></span>${s.label}</span>`;
+}
+
+// ============================================================
+// 10. RENDER SHELL
+// ============================================================
+function renderShell() {
+  return `
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-name"><span class="brand-dot"></span>BluParrot</div>
+      <div class="brand-sub">Attendance</div>
+    </div>
+    <div class="nav-item${state.page==='attendance'?' active':''}" onclick="setPage('attendance')"><i class="ti ti-calendar-check"></i>Attendance</div>
+    <div class="nav-item${state.page==='employees'?' active':''}" onclick="setPage('employees')"><i class="ti ti-users"></i>Employees</div>
+    <div style="flex:1"></div>
+    <div style="padding:10px 14px;border-top:0.5px solid var(--color-border-tertiary);margin-top:10px">
+      ${dbStatusBadge()}
+    </div>
+  </div>
+  <div class="main">
+    ${renderTopbar()}
+    ${renderContent()}
+  </div>
+  ${renderDetailPanel()}`;
+}
+
+function renderTopbar() {
+  return `<div class="topbar">
+    <div class="topbar-title">${state.page==='attendance'?'Attendance':'Employees'}</div>
+    <div class="topbar-actions">
+      <div class="month-chip"><i class="ti ti-calendar" style="font-size:13px"></i><select onchange="switchMonth(this.value)">${monthOptions()}</select></div>
+      <label class="btn btn-neutral" style="cursor:pointer" title="Import CSV"><i class="ti ti-upload"></i>Import<input type="file" accept=".csv,.txt" onchange="handleUpload(event)" style="display:none"></label>
+      <div class="dl-wrap">
+        <button class="btn btn-neutral" onclick="state.dlOpen=!state.dlOpen;render()"><i class="ti ti-download"></i>Export</button>
+        <div class="dl-menu${state.dlOpen?' open':''}">
+          <div class="dl-item" onclick="dlDayXlsx()"><i class="ti ti-table-export"></i><div><div class="dl-item-t">Today's sheet</div><div class="dl-item-s">${fmtDate(state.selectedDate)}</div></div></div>
+          <div class="dl-item" onclick="dlMonthXlsx()"><i class="ti ti-file-spreadsheet"></i><div><div class="dl-item-t">Monthly sheet</div><div class="dl-item-s">${fmtMonth(state.viewYear,state.viewMonth)}</div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// 11. PAGE CONTENT RENDERS
+// ============================================================
+function renderContent() {
+  if (state.page === 'employees') return renderEmpPage();
+  if (state.employees.length === 0 && state.dbStatus !== 'loading') return renderSetup();
+  return `<div class="tab-bar">
+    <div class="tab${state.view==='daily'?' active':''}" onclick="setView('daily')">Daily</div>
+    <div class="tab${state.view==='monthly'?' active':''}" onclick="setView('monthly')">Monthly</div>
+  </div>
+  <div class="content">${renderStats()}${state.view==='daily' ? renderDailyView() : renderMonthlyView()}</div>`;
+}
+
+function renderStats() {
+  const date = state.selectedDate; let p=0,a=0,w=0,l=0;
+  state.employees.forEach(emp => { const s = getR(emp.id,date).status; if(s==='present')p++; else if(s==='wfh')w++; else if(s==='leave')l++; else if(s==='absent')a++; });
+  const total = state.employees.length;
+  return `<div class="stats-row">
+    <div class="stat-card"><div class="stat-label">Present</div><div class="stat-val c-green-val">${p}</div><div class="stat-sub">of ${total}</div></div>
+    <div class="stat-card"><div class="stat-label">Absent</div><div class="stat-val c-red-val">${a}</div><div class="stat-sub">not in</div></div>
+    <div class="stat-card"><div class="stat-label">WFH</div><div class="stat-val c-blue-val">${w}</div><div class="stat-sub">remote</div></div>
+    <div class="stat-card"><div class="stat-label">On Leave</div><div class="stat-val c-amber-val">${l}</div><div class="stat-sub">approved</div></div>
+  </div>`;
+}
+
+function renderSetup() {
+  const isLoading = state.dbStatus === 'loading';
+  if (isLoading) return `<div class="setup"><div style="font-size:44px;color:var(--color-border-secondary);margin-bottom:14px"><i class="ti ti-loader" style="animation:spin .8s linear infinite"></i></div><h3>Connecting to database…</h3></div>`;
+  return `<div class="setup">
+    <div style="font-size:44px;color:var(--color-border-secondary);margin-bottom:14px"><i class="ti ti-users"></i></div>
+    <h3>Set up your workspace</h3>
+    <p>Upload a CSV file with your employee list to get started.</p>
+    <div class="setup-hint"><strong style="font-size:12px">Expected format</strong><br><code>Name, Role, Department</code><br><code>Rahul Verma, Software Engineer, Engineering</code><br><span style="font-size:11px;color:var(--color-text-secondary);display:block;margin-top:3px">Role and Department are optional.</span></div>
+    <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;justify-content:center">
+      <button class="btn btn-neutral" onclick="dlSampleCSV()"><i class="ti ti-file-download"></i>Download sample CSV</button>
+    </div>
+    <div style="margin-top:14px;width:100%;max-width:360px">
+      <label class="upload-area" for="file-input-setup">
+        <div style="font-size:14px;color:var(--color-text-secondary)"><i class="ti ti-upload" style="font-size:22px;display:block;margin:0 auto 7px"></i>Click to upload employees.csv</div>
+      </label>
+      <input type="file" id="file-input-setup" accept=".csv,.txt" onchange="handleUpload(event)" style="display:none">
+    </div>
+  </div>`;
+}
+
+function renderSearchBar(placeholder) {
+  return `<div style="display:flex;flex-direction:column">
+    <div class="search-wrap"><i class="ti ti-search"></i><input id="search-input" class="search-input" type="text" placeholder="${placeholder}" value="${escHtml(state.searchQuery)}" oninput="handleSearch(this.value)" autocomplete="off" spellcheck="false"></div>
+    <span id="regex-err" class="regex-err${state.searchError?' show':''}">Invalid regular expression</span>
+  </div>`;
+}
+
+function renderDailyView() {
+  const date = state.selectedDate; const emps = filteredEmployees();
+  return `<div><div class="sec-hdr">
+    <div class="sec-hdr-left"><span class="sec-title">Attendance — ${fmtDate(date)}</span>${renderSearchBar('Search employees...')}</div>
+    <input type="date" value="${date}" max="${todayStr()}" onchange="state.selectedDate=this.value;render()" style="font-size:12px;height:28px;padding:0 8px;border-radius:var(--border-radius-md)">
+  </div>
+  <div class="table-wrap"><table><thead><tr>
+    <th style="width:22%">Employee</th><th style="width:12%">Status</th><th style="width:10%">Clock In</th><th style="width:10%">Clock Out</th><th style="width:13%">Hours</th><th style="width:13%">Mark</th><th style="width:20%">Actions</th>
+  </tr></thead><tbody>
+  ${emps.length===0 ? `<tr><td colspan="7" class="no-results"><i class="ti ti-search-off"></i> No match for "${escHtml(state.searchQuery)}"</td></tr>` : ''}
+  ${emps.map(emp => {
+    const r = getR(emp.id, date); const h = dailyHrs(emp.id, date);
+    const avc = ac(state.employees.indexOf(emp));
+    const late = r.clockIn && r.clockIn > '09:15';
+    const canClockOut = (r.status==='present'||r.status==='wfh') && r.clockIn && !r.clockOut;
+    const coCell = canClockOut
+      ? `<button class="cout-btn" onclick="event.stopPropagation();clockOut('${emp.id}','${date}')"><i class="ti ti-player-stop"></i>Clock out</button>`
+      : r.clockOut ? `<span class="cout-done">${r.clockOut} ✓</span>`
+      : `<span style="font-size:11px;color:var(--color-text-secondary)">—</span>`;
+    return `<tr class="clickable${rowClass(r.status)}" onclick="selectEmp('${emp.id}')">
+      <td><div class="emp-cell"><div class="avatar" style="background:${avc.bg};color:${avc.color}">${ini(emp.name)}</div><div><div class="emp-name">${highlightMatch(emp.name)}</div><div class="emp-role">${highlightMatch(emp.role)}</div></div></div></td>
+      <td>${statusBadge(r.status)}</td>
+      <td><span class="time-cell${late?' late':''}">${r.clockIn||'—'}</span></td>
+      <td><span class="time-cell">${r.clockOut||'—'}</span></td>
+      <td>${h>0?hoursBar(h):'<span style="color:var(--color-text-secondary);font-size:11px">—</span>'}</td>
+      <td onclick="event.stopPropagation()"><select class="mark-sel" style="${!r.status?'color:var(--color-text-secondary)':''}" onchange="handleStatus('${emp.id}','${date}',this)">
+        <option value="" ${!r.status?'selected':''}>--</option>
+        <option value="present" ${r.status==='present'?'selected':''}>Present</option>
+        <option value="absent"  ${r.status==='absent'?'selected':''}>Absent</option>
+        <option value="wfh"     ${r.status==='wfh'?'selected':''}>WFH</option>
+        <option value="leave"   ${r.status==='leave'?'selected':''}>Leave</option>
+      </select></td>
+      <td onclick="event.stopPropagation()">${coCell}</td>
+    </tr>`;
+  }).join('')}
+  </tbody></table></div></div>`;
+}
+
+function renderMonthlyView() {
+  const y = state.viewYear, m = state.viewMonth; const emps = filteredEmployees();
+  return `<div><div class="sec-hdr">
+    <div class="sec-hdr-left"><span class="sec-title">Monthly — ${fmtMonth(y,m)}</span>${renderSearchBar('Search employees...')}</div>
+  </div>
+  ${emps.length===0 ? `<div class="no-results"><i class="ti ti-search-off"></i> No match for "${escHtml(state.searchQuery)}"</div>` : ''}
+  <div class="monthly-grid">${emps.map(emp => {
+    const c = mCounts(emp.id,y,m), mh = monthlyHrs(emp.id,y,m), avc = ac(state.employees.indexOf(emp));
+    return `<div class="emp-month-card" onclick="selectEmp('${emp.id}')">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:9px">
+        <div class="avatar" style="background:${avc.bg};color:${avc.color};width:34px;height:34px;font-size:12px">${ini(emp.name)}</div>
+        <div><div class="emp-name" style="font-size:13px">${highlightMatch(emp.name)}</div><div class="emp-role">${highlightMatch(emp.role)}</div></div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:9px">
+        <span class="badge badge-present">${c.present}P</span><span class="badge badge-absent">${c.absent}A</span><span class="badge badge-wfh">${c.wfh}W</span><span class="badge badge-leave">${c.leave}L</span>
+      </div>
+      <div style="font-size:11px;color:var(--color-text-secondary);margin-bottom:3px">Monthly hours</div>
+      ${hoursBar(mh, 160)}
+    </div>`;
+  }).join('')}</div></div>`;
+}
+
+function renderEmpPage() {
+  const emps = filteredEmployees(); const y=state.viewYear, m=state.viewMonth;
+  return `<div class="content">
+    <div class="sec-hdr">
+      <div class="sec-hdr-left"><span class="sec-title">${state.employees.length} employees</span>${renderSearchBar('Search by name, role, department...')}</div>
+      <button class="btn btn-primary" onclick="addEmpPrompt()"><i class="ti ti-plus"></i>Add employee</button>
+    </div>
+    <div class="table-wrap"><table><thead><tr>
+      <th style="width:24%">Name</th><th style="width:20%">Role</th><th style="width:16%">Department</th><th style="width:11%">Present%</th><th style="width:11%">Monthly hrs</th><th style="width:18%">Actions</th>
+    </tr></thead><tbody>
+    ${emps.length===0 ? `<tr><td colspan="6" class="no-results"><i class="ti ti-search-off"></i> No match</td></tr>` : ''}
+    ${emps.map(emp => {
+      const idx = state.employees.indexOf(emp);
+      const c = mCounts(emp.id,y,m), pct = c.days>0 ? Math.round((c.present+c.wfh)/c.days*100) : 0;
+      const mh = monthlyHrs(emp.id,y,m), avc = ac(idx);
+      const isEditing = state.editingEmpId === emp.id;
+      const isConfirmDelete = state.confirmDeleteId === emp.id;
+
+      if (isEditing) return `<tr>
+        <td><div class="emp-cell"><div class="avatar" style="background:${avc.bg};color:${avc.color}">${ini(emp.name)}</div><input class="edit-input" id="edit-name" value="${escHtml(emp.name)}" placeholder="Full name"></div></td>
+        <td><input class="edit-input" id="edit-role" value="${escHtml(emp.role)}" placeholder="Role"></td>
+        <td><input class="edit-input" id="edit-dept" value="${escHtml(emp.dept)}" placeholder="Department"></td>
+        <td colspan="2" style="color:var(--color-text-secondary);font-size:11px">editing…</td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn btn-primary btn-sm" onclick="saveEdit('${emp.id}')"><i class="ti ti-check"></i>Save</button>
+          <button class="btn btn-neutral btn-sm" onclick="cancelEdit()"><i class="ti ti-x"></i></button>
+        </div></td>
+      </tr>`;
+
+      if (isConfirmDelete) return `<tr class="row-absent">
+        <td colspan="4"><div class="del-confirm"><i class="ti ti-alert-triangle" style="font-size:14px;color:#A32D2D"></i><span>Remove <strong>${escHtml(emp.name)}</strong> and all attendance data?</span></div></td>
+        <td colspan="2"><div style="display:flex;gap:5px;justify-content:flex-end">
+          <button class="btn btn-danger btn-sm" onclick="confirmDelete('${emp.id}')"><i class="ti ti-trash"></i>Yes, remove</button>
+          <button class="btn btn-neutral btn-sm" onclick="cancelDelete()">Cancel</button>
+        </div></td>
+      </tr>`;
+
+      return `<tr class="clickable" onclick="selectEmp('${emp.id}')">
+        <td><div class="emp-cell"><div class="avatar" style="background:${avc.bg};color:${avc.color}">${ini(emp.name)}</div><div class="emp-name">${highlightMatch(emp.name)}</div></div></td>
+        <td style="color:var(--color-text-secondary)">${highlightMatch(emp.role)}</td>
+        <td><span class="badge badge-neutral">${highlightMatch(emp.dept)}</span></td>
+        <td><span style="font-size:13px;font-weight:500">${pct}%</span></td>
+        <td>${hoursBar(mh,160)}</td>
+        <td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">
+          <button class="btn btn-amber btn-sm" onclick="startEdit('${emp.id}')"><i class="ti ti-edit"></i>Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="askDelete('${emp.id}')"><i class="ti ti-trash"></i>Remove</button>
+        </div></td>
+      </tr>`;
+    }).join('')}
+    </tbody></table></div>
+  </div>`;
+}
+
+function renderDetailPanel() {
+  const emp = state.employees.find(e => e.id === state.selectedEmp);
+  if (!emp) return '';
+  const i = state.employees.indexOf(emp), avc = ac(i);
+  const y=state.viewYear, m=state.viewMonth;
+  const c=mCounts(emp.id,y,m), mh=monthlyHrs(emp.id,y,m);
+  const r=getR(emp.id,state.selectedDate), h=dailyHrs(emp.id,state.selectedDate);
+  const base=new Date(y,m,1); let calDays='';
+  const fdow=base.getDay();
+  for(let j=0;j<fdow;j++) calDays+=`<div class="mcd" style="background:transparent"></div>`;
+  for(let j=0;j<31;j++){
+    const d=new Date(base);d.setDate(j+1);if(d.getMonth()!==m)break;
+    if(d>new Date()){calDays+=`<div class="mcd" style="opacity:.25;font-size:9px;color:var(--color-text-secondary)">${j+1}</div>`;continue;}
+    if(d.getDay()===0||d.getDay()===6){calDays+=`<div class="mcd" style="color:var(--color-border-secondary);font-size:9px">${j+1}</div>`;continue;}
+    const ds=d.toISOString().slice(0,10);const s=getR(emp.id,ds).status;
+    const cls=s?({present:'mc-p',absent:'mc-a',wfh:'mc-w',leave:'mc-l'}[s]||''):'';
+    calDays+=`<div class="mcd ${cls}">${j+1}</div>`;
+  }
+  return `<div class="detail-panel open">
+    <div class="detail-close"><span style="font-size:12px;font-weight:500">Detail</span><button onclick="state.selectedEmp=null;render()" aria-label="Close"><i class="ti ti-x"></i></button></div>
+    <div class="det-avatar" style="background:${avc.bg};color:${avc.color}">${ini(emp.name)}</div>
+    <div class="det-name">${escHtml(emp.name)}</div>
+    <div class="det-role">${escHtml(emp.role)} · ${escHtml(emp.dept)}</div>
+    <div class="det-sec"><div class="det-sec-title">Today (${fmtDate(state.selectedDate)})</div>
+      <div class="det-row"><span class="k">Status</span>${statusBadge(r.status)}</div>
+      <div class="det-row"><span class="k">Clock In</span><span>${r.clockIn||'—'}</span></div>
+      <div class="det-row"><span class="k">Clock Out</span><span>${r.clockOut||'—'}</span></div>
+      <div class="det-row"><span class="k">Hours</span><span>${h>0?h.toFixed(1)+'h':'—'}</span></div>
+    </div>
+    <div class="det-sec"><div class="det-sec-title">${fmtMonth(y,m)}</div>
+      <div class="det-row"><span class="k">Present</span><span>${c.present}d</span></div>
+      <div class="det-row"><span class="k">WFH</span><span>${c.wfh}d</span></div>
+      <div class="det-row"><span class="k">Leave</span><span>${c.leave}d</span></div>
+      <div class="det-row"><span class="k">Absent</span><span>${c.absent}d</span></div>
+      <div class="det-row"><span class="k">Total hrs</span><span>${mh.toFixed(1)}h</span></div>
+    </div>
+    <div class="det-sec"><div class="det-sec-title">Attendance calendar</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:1px;margin-bottom:3px">${['S','M','T','W','T','F','S'].map(d=>`<div style="text-align:center;font-size:9px;color:var(--color-text-secondary);padding:2px 0">${d}</div>`).join('')}</div>
+      <div class="mini-cal">${calDays}</div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:7px"><span class="badge badge-present" style="font-size:10px">P</span><span class="badge badge-wfh" style="font-size:10px">WFH</span><span class="badge badge-absent" style="font-size:10px">A</span><span class="badge badge-leave" style="font-size:10px">L</span></div>
+    </div>
+    <div class="det-sec"><div class="det-sec-title">Update clock times</div>
+      <div style="display:flex;gap:5px;margin-bottom:7px">
+        <input type="time" id="cin-inp" value="${r.clockIn||''}" style="flex:1;font-size:12px;height:28px;padding:0 5px;border-radius:var(--border-radius-md)">
+        <span style="font-size:11px;color:var(--color-text-secondary);align-self:center">→</span>
+        <input type="time" id="cout-inp" value="${r.clockOut||''}" style="flex:1;font-size:12px;height:28px;padding:0 5px;border-radius:var(--border-radius-md)">
+      </div>
+      <button class="btn btn-neutral" style="width:100%;justify-content:center;font-size:12px" onclick="saveClockTimes('${emp.id}','${state.selectedDate}')">Save times</button>
+    </div>
+    <div class="det-sec">
+      <button class="btn btn-info" style="width:100%;justify-content:center;font-size:12px" onclick="dlEmpXlsx('${emp.id}')"><i class="ti ti-download"></i>Export xlsx</button>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// 12. UPLOAD MODAL
+// ============================================================
+function renderUploadModal() {
+  const { parsed, mode } = state.uploadModal;
+  const preview = parsed.slice(0,3).map(e=>`<div>${escHtml(e.name)}${e.role?` — ${escHtml(e.role)}`:''}${e.dept?`, ${escHtml(e.dept)}`:''}</div>`).join('');
+  const more = parsed.length>3 ? `<div style="color:var(--color-text-secondary)">+${parsed.length-3} more…</div>` : '';
+  return `<div class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-title">Importing ${parsed.length} employee${parsed.length>1?'s':''}</div>
+      <div class="modal-sub">Choose how to add them to your workspace.</div>
+      <div class="modal-preview"><strong>From file:</strong><br>${preview}${more}</div>
+      <div class="modal-options">
+        <div class="modal-option${mode==='add'?' selected':''}" onclick="setUploadMode('add')">
+          <i class="ti ti-circle-plus" style="color:${mode==='add'?'#185FA5':'var(--color-text-secondary)'}"></i>
+          <div><div class="modal-option-title">Add to existing list</div><div class="modal-option-desc">Merge with current employees. Duplicates (same name) are skipped.</div></div>
+        </div>
+        <div class="modal-option${mode==='replace'?' selected':''}" onclick="setUploadMode('replace')">
+          <i class="ti ti-replace" style="color:${mode==='replace'?'#185FA5':'var(--color-text-secondary)'}"></i>
+          <div><div class="modal-option-title">Replace all employees</div><div class="modal-option-desc">Clears the current list and all attendance data, then imports new employees.</div></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-neutral" onclick="cancelUpload()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmUpload()"><i class="ti ti-upload"></i>Import</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ============================================================
+// 13. ACTIONS
+// ============================================================
+function setPage(p) { state.page=p; state.editingEmpId=null; state.confirmDeleteId=null; render(); }
+function setView(v) { state.view=v; render(); }
+function selectEmp(id) { state.selectedEmp = state.selectedEmp===id ? null : id; render(); }
+function handleSearch(val) { state.searchQuery=val; render(); }
+function startEdit(id) { state.editingEmpId=id; state.confirmDeleteId=null; state.selectedEmp=null; render(); setTimeout(()=>document.getElementById('edit-name')?.focus(),0); }
+function cancelEdit() { state.editingEmpId=null; render(); }
+function askDelete(id) { state.confirmDeleteId=id; state.editingEmpId=null; render(); }
+function cancelDelete() { state.confirmDeleteId=null; render(); }
+
+async function switchMonth(val) {
+  const [y,m] = val.split('-').map(Number);
+  state.viewYear=y; state.viewMonth=m;
+  if (dbOk) {
+    showSaving('Loading…');
+    try { await dbLoadRecordsForMonth(y, m); showSaving('Loaded ✓', 800); }
+    catch(e) { console.error(e); }
+  }
+  render();
+}
+
+async function saveEdit(id) {
+  const name = document.getElementById('edit-name')?.value.trim();
+  const role = document.getElementById('edit-role')?.value.trim();
+  const dept = document.getElementById('edit-dept')?.value.trim();
+  if (!name) { alert('Name cannot be empty.'); return; }
+  const idx = state.employees.findIndex(e=>e.id===id);
+  if (idx > -1) state.employees[idx] = { ...state.employees[idx], name, role:role||'', dept:dept||'' };
+  state.editingEmpId = null;
+  render();
+  if (dbOk) {
+    showSaving('Saving…');
+    try { await dbUpdateEmployee(state.employees[idx]); showSaving('Saved ✓', 1000); }
+    catch(e) { console.error(e); saveLS(); showSaving('Save failed', 2000); }
+  } else { saveLS(); }
+}
+
+async function confirmDelete(id) {
+  if (state.selectedEmp === id) state.selectedEmp = null;
+  state.employees = state.employees.filter(e=>e.id!==id);
+  delete state.records[id];
+  state.confirmDeleteId = null;
+  render();
+  if (dbOk) {
+    showSaving('Deleting…');
+    try { await dbDeleteEmployee(id); showSaving('Deleted ✓', 1000); }
+    catch(e) { console.error(e); saveLS(); }
+  } else { saveLS(); }
+}
+
+function clockOut(empId, date) { setR(empId, date, { clockOut: nowTime() }); }
+
+function handleStatus(empId, date, sel) {
+  const status = sel.value; if (!status) return;
+  const existing = getR(empId, date); const update = { status };
+  if ((status==='present'||status==='wfh') && !existing.clockIn) update.clockIn = nowTime();
+  if (status==='absent'||status==='leave') { update.clockIn=null; update.clockOut=null; }
+  setR(empId, date, update);
+}
+
+function saveClockTimes(empId, date) {
+  const cin = document.getElementById('cin-inp')?.value;
+  const cout = document.getElementById('cout-inp')?.value;
+  setR(empId, date, { clockIn: cin||null, clockOut: cout||null });
+}
+
+async function addEmpPrompt() {
+  const name = prompt('Full name:'); if (!name) return;
+  const role = prompt('Role:') || '';
+  const dept = prompt('Department:') || '';
+  const id = 'e' + Date.now();
+  const emp = { id, name: name.trim(), role, dept };
+  state.employees.push(emp);
+  if (!state.records[id]) state.records[id] = {};
+  render();
+  if (dbOk) {
+    showSaving('Saving…');
+    try { await dbInsertEmployee(emp); showSaving('Saved ✓', 1000); }
+    catch(e) { console.error(e); saveLS(); }
+  } else { saveLS(); }
+}
+
+// ── Upload / CSV ──
+function handleUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  e.target.value = '';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const lines = ev.target.result.split('\n').filter(l=>l.trim());
+    const parsed = [];
+    lines.forEach((line,i) => {
+      if (i===0 && line.toLowerCase().includes('name')) return;
+      const p = line.split(',').map(s=>s.trim().replace(/^"|"$/g,''));
+      if (p[0]) parsed.push({ id:'e'+Date.now()+i, name:p[0], role:p[1]||'', dept:p[2]||'' });
+    });
+    if (parsed.length===0) { alert('No employees found. Format: Name, Role, Department'); return; }
+    if (state.employees.length===0) { applyUpload(parsed, 'replace'); return; }
+    state.uploadModal = { parsed, mode:'add' }; render();
+  };
+  reader.readAsText(file);
+}
+function setUploadMode(mode) { state.uploadModal = {...state.uploadModal, mode}; render(); }
+function confirmUpload() { const {parsed,mode} = state.uploadModal; applyUpload(parsed, mode); }
+function cancelUpload() { state.uploadModal=null; render(); }
+
+async function applyUpload(parsed, mode) {
+  if (mode === 'replace') {
+    if (dbOk) {
+      showSaving('Clearing…');
+      try { await dbDeleteAllEmployees(); } catch(e) { console.error(e); }
+    }
+    state.employees = parsed;
+    state.records = {};
+    parsed.forEach(emp => { state.records[emp.id] = {}; });
+    state.selectedEmp = null;
+  } else {
+    const existingNames = new Set(state.employees.map(e=>e.name.toLowerCase()));
+    const newOnes = parsed.filter(e=>!existingNames.has(e.name.toLowerCase()));
+    const skipped = parsed.length - newOnes.length;
+    state.employees = [...state.employees, ...newOnes];
+    newOnes.forEach(emp => { if (!state.records[emp.id]) state.records[emp.id] = {}; });
+    if (skipped > 0) setTimeout(()=>alert(`${skipped} duplicate(s) skipped.`), 100);
+    parsed.length && (parsed = newOnes);
+  }
+  state.uploadModal = null;
+  render();
+  if (dbOk) {
+    showSaving('Syncing to database…');
+    try {
+      const toSync = mode==='replace' ? state.employees : parsed;
+      if (toSync.length) await dbBulkUpsertEmployees(toSync);
+      showSaving('Synced ✓', 1000);
+    } catch(e) { console.error(e); saveLS(); showSaving('Sync failed', 2000); }
+  } else { saveLS(); }
+}
+
+// ── Exports ──
+function dlSampleCSV() {
+  const blob = new Blob(['Name,Role,Department\nRahul Verma,Software Engineer,Engineering\n'], {type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='BluParrot_employees_sample.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+function dlDayXlsx() {
+  const date = state.selectedDate;
+  const rows = state.employees.map(emp => {
+    const r=getR(emp.id,date); const h=dailyHrs(emp.id,date);
+    return { Employee:emp.name, Role:emp.role, Department:emp.dept, Date:fmtDate(date), Status:r.status||'—', 'Clock In':r.clockIn||'—', 'Clock Out':r.clockOut||'—', 'Hours Worked':h>0?parseFloat(h.toFixed(2)):'' };
+  });
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[{wch:22},{wch:20},{wch:16},{wch:14},{wch:10},{wch:10},{wch:10},{wch:14}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Attendance');
+  XLSX.writeFile(wb, `BluParrot_Attendance_${date}.xlsx`); closeDl();
+}
+function dlMonthXlsx() {
+  const y=state.viewYear, m=state.viewMonth;
+  const rows=[];
+  state.employees.forEach(emp=>{
+    const base=new Date(y,m,1);
+    for(let i=0;i<31;i++){
+      const d=new Date(base); d.setDate(i+1); if(d.getMonth()!==m)break;
+      const ds=d.toISOString().slice(0,10); if(d.getDay()===0||d.getDay()===6)continue;
+      const r=getR(emp.id,ds); const h=dailyHrs(emp.id,ds);
+      rows.push({Employee:emp.name,Role:emp.role,Department:emp.dept,Date:fmtDate(ds),Day:d.toLocaleDateString('en-IN',{weekday:'short'}),Status:r.status||'—','Clock In':r.clockIn||'—','Clock Out':r.clockOut||'—','Hours Worked':h>0?parseFloat(h.toFixed(2)):''});
+    }
+  });
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[{wch:22},{wch:20},{wch:16},{wch:14},{wch:8},{wch:10},{wch:10},{wch:10},{wch:14}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,fmtMonth(y,m));
+  XLSX.writeFile(wb,`BluParrot_${y}-${String(m+1).padStart(2,'0')}.xlsx`); closeDl();
+}
+function dlEmpXlsx(empId) {
+  const emp=state.employees.find(e=>e.id===empId); if(!emp)return;
+  const y=state.viewYear, m=state.viewMonth; const base=new Date(y,m,1); const rows=[];
+  for(let i=0;i<31;i++){
+    const d=new Date(base); d.setDate(i+1); if(d.getMonth()!==m)break;
+    const ds=d.toISOString().slice(0,10); if(d.getDay()===0||d.getDay()===6)continue;
+    const r=getR(emp.id,ds); const h=dailyHrs(emp.id,ds);
+    rows.push({Date:fmtDate(ds),Day:d.toLocaleDateString('en-IN',{weekday:'short'}),Status:r.status||'—','Clock In':r.clockIn||'—','Clock Out':r.clockOut||'—','Hours Worked':h>0?parseFloat(h.toFixed(2)):''});
+  }
+  const c=mCounts(empId,y,m); const mh=monthlyHrs(empId,y,m);
+  rows.push({Date:'TOTAL',Day:'',Status:'','Clock In':'','Clock Out':'','Hours Worked':parseFloat(mh.toFixed(2))});
+  const ws=XLSX.utils.json_to_sheet(rows); ws['!cols']=[{wch:16},{wch:8},{wch:10},{wch:10},{wch:10},{wch:14}];
+  const infoWs=XLSX.utils.aoa_to_sheet([['Employee',emp.name],['Role',emp.role],['Department',emp.dept],['Month',fmtMonth(y,m)],['Present',c.present],['WFH',c.wfh],['Leave',c.leave],['Absent',c.absent],['Total Hours',parseFloat(mh.toFixed(2))]]);
+  infoWs['!cols']=[{wch:16},{wch:22}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,infoWs,'Summary'); XLSX.utils.book_append_sheet(wb,ws,'Daily Log');
+  XLSX.writeFile(wb,`BluParrot_${emp.name.replace(/ /g,'_')}_${y}-${String(m+1).padStart(2,'0')}.xlsx`);
+}
+function closeDl() { state.dlOpen=false; render(); }
+
+// ============================================================
+// 14. RENDER
+// ============================================================
+function render() {
+  document.getElementById('app').innerHTML = renderShell();
+  const mr = document.getElementById('modal-root');
+  mr.innerHTML = state.uploadModal ? renderUploadModal() : '';
+  setTimeout(() => {
+    const si = document.getElementById('search-input');
+    if (si) { si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+    if (state.dlOpen) {
+      document.addEventListener('click', function h(e) {
+        if (!e.target.closest('.dl-wrap')) { state.dlOpen=false; render(); }
+        document.removeEventListener('click', h);
+      });
+    }
+  }, 0);
+}
+
+// ============================================================
+// 15. BOOT
+// ============================================================
+init();
+</script>
